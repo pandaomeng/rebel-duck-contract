@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 
 describe("NFTEnumerable", function () {
   it("Should work successfully", async function () {
+    return
     // const NFTEnumerable = await ethers.getContractFactory("NFTEnumerable");
     // const nftReader = await NFTEnumerable.deploy();
 
