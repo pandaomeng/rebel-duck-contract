@@ -23,7 +23,7 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
     mapping(address => uint256[]) public userChosenNumbers;
     
 
-    event ChooseAndStake(address staker, uint256 amount);
+    event ChooseAndStake(address staker, uint256 chosenNumber, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -51,11 +51,12 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         require(userStakedTimePerNumber[msg.sender][_number] == 0, "GuessGame: ALREADY_STAKED");
         // can only stake 3 numbers per address
         require(userChosenNumbers[msg.sender].length < 3, "GuessGame: EXCEED_MAX_STAKED_NUMBER");
-        UNDERLYING_TOKEN.transfer(address(this), _tokenAmount);
+        require(block.timestamp >= START_TIME && block.timestamp <= END_TIME, "GuessGame: NOT_IN_STAKING_TIME");
+        UNDERLYING_TOKEN.transferFrom(msg.sender, address(this), _tokenAmount);
         userStakedTimePerNumber[msg.sender][_number] = block.timestamp;
         userStakedAmountPerNumber[msg.sender][_number] = _tokenAmount;
         userChosenNumbers[msg.sender].push(_number);
-        emit ChooseAndStake(msg.sender, _tokenAmount);
+        emit ChooseAndStake(msg.sender, _number,  _tokenAmount);
     }
 
     // function raiseBet(uint256 _number, uint256 _tokenAmount) external;
