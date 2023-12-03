@@ -1,0 +1,84 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "txHash": "0xc070e964d8862bb756d5f2b62943700cd7c2dbb0b2398ea81f8bed54667db8a7"
+  },
+  "proxies": [
+    {
+      "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "txHash": "0x3e19108ff77906ab9297a9b82edc70b91082d08a90448009bfd870c4c74ba3e5",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "ab2f8f267c43534fced831c863ea470688cc7c4817f7224247ef8f6b3ca2ca34": {
+      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "txHash": "0xd4f83fcadd6b14095a5ac07c175d8a36ce5488fe34723af57a149f0fac3bc060",
+      "layout": {
+        "solcVersion": "0.8.9",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "admin",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "Adminable",
+            "src": "contracts/libs/Adminable.sol:7"
+          },
+          {
+            "label": "guessGameAddresses",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_address)dyn_storage",
+            "contract": "GuessGameFactory",
+            "src": "contracts/GuessGameFactory.sol:12"
+          },
+          {
+            "label": "gameImplementation",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "GuessGameFactory",
+            "src": "contracts/GuessGameFactory.sol:13"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}
