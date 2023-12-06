@@ -35,7 +35,7 @@ contract GuessGameFactory is IGuessGameFactory, Initializable, Adminable {
         }
     }
 
-    function createGame(address _tokenAddress, uint256 _startTime, uint256 _endTime) external onlyAdmin returns (address guessGameAddress) {
+    function createGame(address _tokenAddress, uint256 _startTime, uint256 _interval, uint256 _interval_nums) external onlyAdmin returns (address guessGameAddress) {
         address proxyAdmin = address(this);
         require(gameImplementation != address(0), "GuessGameFactory: Invalid GuessGame implementation");
         bytes memory proxyData;
@@ -46,10 +46,18 @@ contract GuessGameFactory is IGuessGameFactory, Initializable, Adminable {
         );
         guessGameAddress = address(proxy);
 
-        IGuessGame(guessGameAddress).initialize(address(this), _tokenAddress, _startTime, _endTime);
+        IGuessGame(guessGameAddress).initialize(address(this), _tokenAddress, _startTime, _interval, _interval_nums);
 
         guessGameAddresses.push(guessGameAddress);
 
         emit GuessGameCreated(_tokenAddress, guessGameAddress);
+    }
+
+    function setWeightsForGame(address _gameAddress, uint256[] memory weights) external onlyAdmin {
+        IGuessGame(_gameAddress).setIntervalWeight(weights);
+    }
+
+    function withdrawToken(address _gameAddress, uint256 _amount) external onlyAdmin {
+        IGuessGame(_gameAddress).withdraw(_amount);
     }
 }

@@ -46,7 +46,7 @@ describe("Guess Game", function () {
 
     const tx = await guessGameFactory
       .connect(admin)
-      .createGame(usdc.address, 1701648000 -86400, 1701648000 + 5 * 86400);
+      .createGame(usdc.address, 1701648000, 86400, 4);
     const res = await tx.wait();
     expect(res.events).to.not.eq(
       undefined,
@@ -73,18 +73,24 @@ describe("Guess Game", function () {
     guessGame = guessGame.attach(guessGameAddress);
 
     expect(await guessGame.TOKEN_ADDRESS()).to.eq(usdc.address);
+
+    // set weights for game
+    await guessGameFactory.setWeightsForGame(
+      guessGame.address,
+      [150, 120, 100, 80]
+    );
   });
 
   // expect the guessGame's start time is the next monday's 00:00:00 and the end time is the next Saturday's 00:00:00
   it("should start and end time is correct", async () => {
-    const nextMonday = 1701648000 - 86400;
-    const nextSaturday = 1701648000 + 5 * 24 * 60 * 60;
+    const nextMonday = 1701648000;
+    const nextFriday = 1701648000 + 4 * 24 * 60 * 60;
     expect(await guessGame.START_TIME()).to.eq(
       nextMonday,
       "the start time should be the next Monday"
     );
     expect(await guessGame.END_TIME()).to.eq(
-      nextSaturday,
+      nextFriday,
       "the end time should be the next Saturday"
     );
   });

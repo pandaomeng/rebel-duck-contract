@@ -36,7 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         contract: name,
         log: true,
         autoMine: true,
-        args: ["MockERC20", "MockERC20"],
+        args: ["$reFeather", "$reFeather"],
       });
     }
   );
