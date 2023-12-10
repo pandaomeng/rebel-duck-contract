@@ -82,15 +82,12 @@ describe("Guess Game", function () {
     expect(await guessGame.TOKEN_ADDRESS()).to.eq(usdc.address);
 
     // set weights for game
-    await guessGameFactory.setWeightsForGame(
-      guessGame.address,
-      WEIGHTS
-    );
+    await guessGameFactory.setWeightsForGame(guessGame.address, WEIGHTS);
   });
 
   // expect the guessGame's start time is the next monday's 00:00:00 and the end time is the next Saturday's 00:00:00
   it("should start and end time is correct", async () => {
-    const nextMonday = START_TIME
+    const nextMonday = START_TIME;
     const nextFriday = START_TIME + INTERVAL_NUMS * INTERVAL;
     expect(await guessGame.START_TIME()).to.eq(
       nextMonday,
@@ -170,7 +167,9 @@ describe("Guess Game", function () {
     ).to.eq(parseUnits("1000", 18), "the stake amount should be 1000");
 
     // alice's share should be 1000 * WEIGHT[0]
-    expect(await guessGame.userNumberShareMapping(alice.address, stakeNumber)).to.eq(
+    expect(
+      await guessGame.userNumberShareMapping(alice.address, stakeNumber)
+    ).to.eq(
       parseUnits("1000", 18).mul(WEIGHTS[0]),
       `the share should be ${parseUnits("1000", 18).mul(WEIGHTS[0])}`
     );
@@ -209,12 +208,12 @@ describe("Guess Game", function () {
       await guessGame.userNumberStakedAmountMapping(alice.address, stakeNumber)
     ).to.eq(parseUnits("1500", 18), "the stake amount should be 1500");
 
-    
-    const aliceStakedShares = parseUnits("1000", 18).mul(WEIGHTS[0]).add(parseUnits("500", 18).mul(WEIGHTS[1]))
-    expect(await guessGame.userNumberShareMapping(alice.address, stakeNumber)).to.eq(
-      aliceStakedShares,
-      `aliceStakedShares`
-    );
+    const aliceStakedShares = parseUnits("1000", 18)
+      .mul(WEIGHTS[0])
+      .add(parseUnits("500", 18).mul(WEIGHTS[1]));
+    expect(
+      await guessGame.userNumberShareMapping(alice.address, stakeNumber)
+    ).to.eq(aliceStakedShares, `aliceStakedShares`);
   });
 
   // in day 1, bob stake 800 usdc for number 324, should success
@@ -248,37 +247,43 @@ describe("Guess Game", function () {
       await guessGame.userNumberStakedAmountMapping(bob.address, stakeNumber)
     ).to.eq(stakeAmount, "the stake amount should be 800");
 
-    const bobStakedShares = parseUnits("800", 18).mul(WEIGHTS[1])
-    expect(await guessGame.userNumberShareMapping(bob.address, stakeNumber)).to.eq(
-      bobStakedShares,
-      `bobStakedShares`
-    );
+    const bobStakedShares = parseUnits("800", 18).mul(WEIGHTS[1]);
+    expect(
+      await guessGame.userNumberShareMapping(bob.address, stakeNumber)
+    ).to.eq(bobStakedShares, `bobStakedShares`);
   });
 
   // pass 2 days, should not be able to set FinalNumber
   it("should not be able to get FinalNumber", async () => {
     await network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
     await network.provider.send("evm_mine");
-    await expect(guessGameFactory.connect(admin).setFinalNumber(guessGame.address)).to.be.revertedWith(
-      "GuessGame: NOT_IN_SETTLEMENT_TIME"
-    );
+    await expect(
+      guessGameFactory.connect(admin).setFinalNumber(guessGame.address)
+    ).to.be.revertedWith("GuessGame: NOT_IN_SETTLEMENT_TIME");
   });
 
   // pass 1 day, should be able to set FinalNumber
   it("should be able to get FinalNumber", async () => {
     await network.provider.send("evm_increaseTime", [1 * 24 * 60 * 60]);
     await network.provider.send("evm_mine");
-    const tx = await guessGameFactory.connect(admin).setFinalNumber(guessGame.address);
-    
-    // 786 
-    const aliceStakedShares = parseUnits("1000", 18).mul(WEIGHTS[0]).add(parseUnits("500", 18).mul(WEIGHTS[1]))
+    const tx = await guessGameFactory
+      .connect(admin)
+      .setFinalNumber(guessGame.address);
+
+    // 786
+    const aliceStakedShares = parseUnits("1000", 18)
+      .mul(WEIGHTS[0])
+      .add(parseUnits("500", 18).mul(WEIGHTS[1]));
 
     // 324
-    const bobStakedShares = parseUnits("800", 18).mul(WEIGHTS[1])
+    const bobStakedShares = parseUnits("800", 18).mul(WEIGHTS[1]);
 
-    const averageNumber = aliceStakedShares.mul(786).add(bobStakedShares.mul(324)).div(aliceStakedShares.add(bobStakedShares))
-    console.log(`FINAL_NUMBER: ${await guessGame.FINAL_NUMBER()}`)
-    console.log(`AVERAGE_NUMBER: ${await guessGame.AVERAGE_NUMBER()}`)
+    const averageNumber = aliceStakedShares
+      .mul(786)
+      .add(bobStakedShares.mul(324))
+      .div(aliceStakedShares.add(bobStakedShares));
+    console.log(`FINAL_NUMBER: ${await guessGame.FINAL_NUMBER()}`);
+    console.log(`AVERAGE_NUMBER: ${await guessGame.AVERAGE_NUMBER()}`);
 
     // console.log('await getStakedNumberInfos: ', await guessGame.getStakedNumberInfos())
 
@@ -299,16 +304,17 @@ describe("Guess Game", function () {
     );
   });
 
-
   // set reward for alice and bob
   it("should set reward for alice and bob", async () => {
     const aliceReward = parseUnits("1500", 18);
     const bobReward = parseUnits("800", 18);
-    await guessGameFactory.connect(admin).setRewardForUsers(
-      guessGame.address,
-      [alice.address, bob.address],
-      [aliceReward, bobReward]
-    );
+    await guessGameFactory
+      .connect(admin)
+      .setRewardForUsers(
+        guessGame.address,
+        [alice.address, bob.address],
+        [aliceReward, bobReward]
+      );
 
     expect(await guessGame.userRewardAmount(alice.address)).to.eq(
       aliceReward,

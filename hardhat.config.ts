@@ -80,7 +80,8 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       // url: "https://api.zan.top/node/v1/eth/sepolia/public",
-      url: "https://eth-sepolia.public.blastapi.io"	,
+      // url: "https://eth-sepolia.public.blastapi.io",
+      url: 'https://ethereum-sepolia.publicnode.com',
       // url: "https://rpc.sepolia.org",
       chainId: 11155111,
       accounts: [process.env.KEY_SEPOLIA!],
@@ -119,7 +120,16 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: process.env.SEPOLIA_API_KEY!,
     },
-    customChains: [],
+    // customChains: [
+    //   {
+    //     network: "sepolia",
+    //     chainId: 11155111,
+    //     urls: {
+    //       apiURL: "https://sepolia.etherscan.io/api",
+    //       browserURL: "https://sepolia.etherscan.io"
+    //     }
+    //   }
+    // ],
   },
   preprocess: {
     eachLine: removeConsoleLog((hre) => !['hardhat', 'local'].includes(hre.network.name)),
