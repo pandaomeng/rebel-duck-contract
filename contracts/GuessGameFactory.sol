@@ -60,4 +60,8 @@ contract GuessGameFactory is IGuessGameFactory, Initializable, Adminable {
     function withdrawToken(address _gameAddress, uint256 _amount) external onlyAdmin {
         IGuessGame(_gameAddress).withdraw(_amount);
     }
+
+    function setFinalNumber(address _gameAddress) external onlyAdmin {
+        IGuessGame(_gameAddress).setFinalNumber();
+    }
 }

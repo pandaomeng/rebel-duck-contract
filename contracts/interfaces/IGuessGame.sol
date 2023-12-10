@@ -9,6 +9,8 @@ interface IGuessGame {
 
     function setIntervalWeight(uint256[] memory weights) external;
 
+    function setFinalNumber() external;
+
     function withdraw(uint256 _number) external;
 
 
