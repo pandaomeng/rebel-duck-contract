@@ -22,6 +22,21 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         uint256 day;
     }
 
+    struct NumberUserShareInfo {
+        uint256 number;
+        address staker;
+        uint256 share;
+    }
+
+    struct StakedNumberInfo {
+        uint256 number;
+        uint256 totalStakedShare;
+        address[] stakers;
+        NumberUserShareInfo[] stakerShareInfos;
+    }
+
+
+
     address public TOKEN_ADDRESS;
     IERC20 public UNDERLYING_TOKEN;
     uint256 public START_TIME;
@@ -34,29 +49,27 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
 
     // user infos
     mapping(address => Operation[]) public userOperationHistory;
+    // user => number => amount
     mapping(address => mapping(uint256 => uint256)) public userStakedAmountPerNumber;
+    // user => number => share
     mapping(address => mapping(uint256 => uint256)) public userStakedSharePerNumber;
+    // user => number[]
     mapping(address => uint256[]) public userChosenNumbers;
 
-    // number to user
-    mapping(uint256 => address[]) public stakersPerNumber;
+    // number => user => share
+    mapping(uint256 => mapping(address => uint256)) numberUserShareMapping;
+    // number => user[]
+    mapping(uint256 => address[]) public numberUsers;
 
     // all infos
-    // _number to shares
+    // number => shares
     mapping(uint256 => uint256) public totalStakedSharePerNumber;
-    // all staked numbers
+    // all staked numbers, number[]
     uint256[] public stakedNumbers;
 
     // 开奖号码 
     uint256 public AVERAGE_NUMBER;
     uint256 public FINAL_NUMBER;
-
-    struct StakedNumberInfos {
-        uint256 number;
-        uint256 totalStakedShare;
-        address[] stakers;
-    }
-    
 
     event ChooseAndStake(address staker, uint256 chosenNumber, uint256 amount, uint256 day, uint256 shares);
     event FinalNumberSet(uint256 finalNumber, uint256 averageNumber, uint256 random);
@@ -72,15 +85,29 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
     }
 
     // get stakedNumber info List in stakedNumbers
-    function getStakedNumberInfos() public view returns (StakedNumberInfos[] memory) {
+    function getStakedNumberInfos() public view returns (StakedNumberInfo[] memory) {
         uint256[] memory numbers = stakedNumbers;
-        StakedNumberInfos[] memory infos = new StakedNumberInfos[](numbers.length);
+        StakedNumberInfo[] memory infos = new StakedNumberInfo[](numbers.length);
         for (uint256 i = 0; i < numbers.length; i++) {
             uint256 number = numbers[i];
-            infos[i] = StakedNumberInfos({
+
+            // set NumberUserShareInfo for infos[i]
+            NumberUserShareInfo[] memory shareInfos = new NumberUserShareInfo[](numberUsers[number].length);
+            for (uint256 j = 0; j < numberUsers[number].length; j++) {
+                address user = numberUsers[number][j];
+                shareInfos[j] = NumberUserShareInfo({
+                    number: number,
+                    staker: user,
+                    share: numberUserShareMapping[number][user]
+                });
+            }
+
+
+            infos[i] = StakedNumberInfo({
                 number: number,
                 totalStakedShare: totalStakedSharePerNumber[number],
-                stakers: stakersPerNumber[number]
+                stakers: numberUsers[number],
+                stakerShareInfos: shareInfos
             });
         }
         return infos;
@@ -200,7 +227,11 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         userStakedAmountPerNumber[msg.sender][_number] += _tokenAmount;
         userStakedSharePerNumber[msg.sender][_number] += shares;
         userChosenNumbers[msg.sender].push(_number);
-        stakersPerNumber[_number].push(msg.sender);
+
+        if (numberUserShareMapping[_number][msg.sender] == 0) {
+            numberUsers[_number].push(msg.sender);
+        }
+        numberUserShareMapping[_number][msg.sender] += shares;
         if (totalStakedSharePerNumber[_number] == 0) {
             stakedNumbers.push(_number);
         }

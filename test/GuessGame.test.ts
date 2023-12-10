@@ -298,4 +298,11 @@ describe("Guess Game", function () {
       "the final number should be greater than averageNumber - 100"
     );
   });
+
+
+  // test getStakedNumberInfos
+  it("should getStakedNumberInfos", async () => {
+    const infos = await guessGame.getStakedNumberInfos()
+    console.log('infos: ', infos, null, 2)
+  });
 });
