@@ -20,6 +20,7 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         uint256 amount;
         uint256 shares;
         uint256 day;
+        uint256 weight;
     }
 
     struct NumberUserShareInfo {
@@ -50,16 +51,23 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
     // user infos
     mapping(address => Operation[]) public userOperationHistory;
     // user => number => amount
-    mapping(address => mapping(uint256 => uint256)) public userStakedAmountPerNumber;
+    mapping(address => mapping(uint256 => uint256)) public userNumberStakedAmountMapping;
     // user => number => share
-    mapping(address => mapping(uint256 => uint256)) public userStakedSharePerNumber;
+    mapping(address => mapping(uint256 => uint256)) public userNumberShareMapping;
     // user => number[]
     mapping(address => uint256[]) public userChosenNumbers;
+    // uniqAddresses
+    address[] public uniqAddresses;
+    //
+    uint256 public totalBetCount = 0;
 
     // number => user => share
     mapping(uint256 => mapping(address => uint256)) numberUserShareMapping;
     // number => user[]
     mapping(uint256 => address[]) public numberUsers;
+
+    // user => rewardAmount
+    mapping(address => uint256) public userRewardAmount;
 
     // all infos
     // number => shares
@@ -74,6 +82,19 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
     event ChooseAndStake(address staker, uint256 chosenNumber, uint256 amount, uint256 day, uint256 shares);
     event FinalNumberSet(uint256 finalNumber, uint256 averageNumber, uint256 random);
 
+    struct AllInfo {
+        uint256 totalBetCount;
+        uint256 totalShare;
+        uint256 rewardPool;
+        uint256[] stakedNumbers;
+        address[] uniqAddresses;
+        uint256 userRewardAmount;
+        Operation[] userOperationHistory;
+        uint256[] userChosenNumbers;
+        uint256 AVERAGE_NUMBER;
+        uint256 FINAL_NUMBER;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -81,6 +102,13 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
 
     modifier onlyFactory() {
         require(msg.sender == address(factory), "GuessGame: UNAUTHORIZED");
+        _;
+    }
+
+    modifier inSettlementTime() {
+        uint256 day = (block.timestamp - START_TIME) / INTERVAL;
+        // day should more than INTERVAL_NUMS
+        require(day >= INTERVAL_NUMS, "GuessGame: NOT_IN_SETTLEMENT_TIME");
         _;
     }
 
@@ -112,13 +140,24 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         }
         return infos;
     }
+
+    function getAllInfos() public view returns (AllInfo memory) {
+        return AllInfo({
+            totalBetCount: totalBetCount,
+            totalShare: TOTAL_SHARE,
+            rewardPool: REWARD_POOL,
+            stakedNumbers: stakedNumbers,
+            uniqAddresses: uniqAddresses,
+            userRewardAmount: userRewardAmount[msg.sender],
+            userOperationHistory: userOperationHistory[msg.sender],
+            userChosenNumbers: userChosenNumbers[msg.sender],
+            AVERAGE_NUMBER: AVERAGE_NUMBER,
+            FINAL_NUMBER: FINAL_NUMBER
+        });
+    }
     
 
     function getAverageNumber() public view returns (uint256) {
-        uint256 day = (block.timestamp - START_TIME) / INTERVAL;
-        // day should more than INTERVAL_NUMS
-        require(day >= INTERVAL_NUMS, "GuessGame: NOT_IN_OPEN_TIME");
-
         uint256[] memory numbers = stakedNumbers;
         uint256 sharedSum = 0;
         uint256 weightedAccumulation = 0;
@@ -138,11 +177,7 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         return seed % 201; // Modulo 201 to get a number in the range [0, 200]
     }
 
-    function setFinalNumber() external onlyFactory {
-        uint256 day = (block.timestamp - START_TIME) / INTERVAL;
-        // day should more than INTERVAL_NUMS
-        require(day >= INTERVAL_NUMS, "GuessGame: NOT_IN_OPEN_TIME");
-
+    function setFinalNumber() external onlyFactory inSettlementTime {
         uint256[] memory numbers = stakedNumbers;
         uint256 sharedSum = 0;
         uint256 weightedAccumulation = 0;
@@ -170,8 +205,30 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         emit FinalNumberSet(finalNumber, averageNumber, random);
     }
 
+    // set reward for users according to input params
+    function setRewardForUsers(address[] memory users, uint256[] memory rewards) external onlyFactory inSettlementTime {
+        require(users.length == rewards.length, "GuessGame: INVALID_USERS_REWARDS_LENGTH");
+        uint256 totalReward = 0;
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
+            uint256 the_reward = rewards[i];
+            totalReward += the_reward;
+            userRewardAmount[user] = the_reward;
+        }
+        if (totalReward > REWARD_POOL) {
+            revert("GuessGame: EXCEED_REWARD_POOL");
+        }
+    }
+
+    function claimReward() public inSettlementTime {
+        uint256 reward = userRewardAmount[msg.sender];
+        userRewardAmount[msg.sender] -= reward;
+        UNDERLYING_TOKEN.transfer(msg.sender, reward);
+    }
+
     function setIntervalWeight(uint256[] memory weights) external onlyFactory {
         require(weights.length == INTERVAL_NUMS, "GuessGame: INVALID_WEIGHTS_LENGTH");
+        require(stakedNumbers.length == 0, "GuessGame: STAKED_NUMBER_NOT_EMPTY");
         INTERVAL_WEIGHTS = weights;
     }
 
@@ -210,23 +267,31 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
                 revert("GuessGame: EXCEED_MAX_STAKED_NUMBER");
             }
         }
-        require(_tokenAmount + userStakedAmountPerNumber[msg.sender][_number] <= 100000 * 1e18, "GuessGame: EXCEED_MAX_STAKED_AMOUNT");
+        require(_tokenAmount + userNumberStakedAmountMapping[msg.sender][_number] <= 100000 * 1e18, "GuessGame: EXCEED_MAX_STAKED_AMOUNT");
 
         UNDERLYING_TOKEN.transferFrom(msg.sender, address(this), _tokenAmount);
         uint256 day = (block.timestamp - START_TIME) / INTERVAL;
         uint256 shares = _tokenAmount * INTERVAL_WEIGHTS[day];
         TOTAL_SHARE += shares;
         REWARD_POOL += _tokenAmount;
+
+        if (userChosenNumbers[msg.sender].length == 0) {
+            uniqAddresses.push(msg.sender);
+        }
+
         userOperationHistory[msg.sender].push(Operation({
             number: _number,
             timestamp: block.timestamp,
             amount: _tokenAmount,
             shares: shares,
-            day: day
+            day: day,
+            weight: INTERVAL_WEIGHTS[day]
         }));
-        userStakedAmountPerNumber[msg.sender][_number] += _tokenAmount;
-        userStakedSharePerNumber[msg.sender][_number] += shares;
-        userChosenNumbers[msg.sender].push(_number);
+        userNumberStakedAmountMapping[msg.sender][_number] += _tokenAmount;
+        if (userNumberShareMapping[msg.sender][_number] == 0) {
+            userChosenNumbers[msg.sender].push(_number);
+        }
+        userNumberShareMapping[msg.sender][_number] += shares;
 
         if (numberUserShareMapping[_number][msg.sender] == 0) {
             numberUsers[_number].push(msg.sender);
@@ -235,7 +300,10 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
         if (totalStakedSharePerNumber[_number] == 0) {
             stakedNumbers.push(_number);
         }
+
+
         totalStakedSharePerNumber[_number] += shares;
+        totalBetCount += 1;
         emit ChooseAndStake(msg.sender, _number,  _tokenAmount, day, shares);
     }
 

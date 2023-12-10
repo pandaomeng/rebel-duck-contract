@@ -11,6 +11,8 @@ interface IGuessGame {
 
     function setFinalNumber() external;
 
+    function setRewardForUsers(address[] memory users, uint256[] memory rewards) external;
+
     function withdraw(uint256 _number) external;
 
 

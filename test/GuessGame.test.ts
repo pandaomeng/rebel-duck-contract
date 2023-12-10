@@ -132,7 +132,7 @@ describe("Guess Game", function () {
       "the stake number should be 786"
     );
     expect(
-      await guessGame.userStakedAmountPerNumber(alice.address, stakeNumber)
+      await guessGame.userNumberStakedAmountMapping(alice.address, stakeNumber)
     ).to.eq(stakeAmount, "the stake amount should be 500");
 
     // const history = await guessGame.getUserOperationHistories(alice.address);
@@ -166,11 +166,11 @@ describe("Guess Game", function () {
       "the stake number should be 786"
     );
     expect(
-      await guessGame.userStakedAmountPerNumber(alice.address, stakeNumber)
+      await guessGame.userNumberStakedAmountMapping(alice.address, stakeNumber)
     ).to.eq(parseUnits("1000", 18), "the stake amount should be 1000");
 
     // alice's share should be 1000 * WEIGHT[0]
-    expect(await guessGame.userStakedSharePerNumber(alice.address, stakeNumber)).to.eq(
+    expect(await guessGame.userNumberShareMapping(alice.address, stakeNumber)).to.eq(
       parseUnits("1000", 18).mul(WEIGHTS[0]),
       `the share should be ${parseUnits("1000", 18).mul(WEIGHTS[0])}`
     );
@@ -206,12 +206,12 @@ describe("Guess Game", function () {
       "the stake number should be 786"
     );
     expect(
-      await guessGame.userStakedAmountPerNumber(alice.address, stakeNumber)
+      await guessGame.userNumberStakedAmountMapping(alice.address, stakeNumber)
     ).to.eq(parseUnits("1500", 18), "the stake amount should be 1500");
 
     
     const aliceStakedShares = parseUnits("1000", 18).mul(WEIGHTS[0]).add(parseUnits("500", 18).mul(WEIGHTS[1]))
-    expect(await guessGame.userStakedSharePerNumber(alice.address, stakeNumber)).to.eq(
+    expect(await guessGame.userNumberShareMapping(alice.address, stakeNumber)).to.eq(
       aliceStakedShares,
       `aliceStakedShares`
     );
@@ -245,11 +245,11 @@ describe("Guess Game", function () {
       "the stake number should be 324"
     );
     expect(
-      await guessGame.userStakedAmountPerNumber(bob.address, stakeNumber)
+      await guessGame.userNumberStakedAmountMapping(bob.address, stakeNumber)
     ).to.eq(stakeAmount, "the stake amount should be 800");
 
     const bobStakedShares = parseUnits("800", 18).mul(WEIGHTS[1])
-    expect(await guessGame.userStakedSharePerNumber(bob.address, stakeNumber)).to.eq(
+    expect(await guessGame.userNumberShareMapping(bob.address, stakeNumber)).to.eq(
       bobStakedShares,
       `bobStakedShares`
     );
@@ -260,7 +260,7 @@ describe("Guess Game", function () {
     await network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
     await network.provider.send("evm_mine");
     await expect(guessGameFactory.connect(admin).setFinalNumber(guessGame.address)).to.be.revertedWith(
-      "GuessGame: NOT_IN_OPEN_TIME"
+      "GuessGame: NOT_IN_SETTLEMENT_TIME"
     );
   });
 
@@ -300,9 +300,41 @@ describe("Guess Game", function () {
   });
 
 
-  // test getStakedNumberInfos
-  it("should getStakedNumberInfos", async () => {
-    const infos = await guessGame.getStakedNumberInfos()
-    console.log('infos: ', infos, null, 2)
+  // set reward for alice and bob
+  it("should set reward for alice and bob", async () => {
+    const aliceReward = parseUnits("1500", 18);
+    const bobReward = parseUnits("800", 18);
+    await guessGameFactory.connect(admin).setRewardForUsers(
+      guessGame.address,
+      [alice.address, bob.address],
+      [aliceReward, bobReward]
+    );
+
+    expect(await guessGame.userRewardAmount(alice.address)).to.eq(
+      aliceReward,
+      "alice's reward should be 1500"
+    );
+    expect(await guessGame.userRewardAmount(bob.address)).to.eq(
+      bobReward,
+      "bob's reward should be 800"
+    );
+    // alice and bob is able to claim reward
+    await guessGame.connect(alice).claimReward();
+    await guessGame.connect(bob).claimReward();
+    // check alice and bob's balance
+    expect(await usdc.balanceOf(alice.address)).to.eq(
+      parseUnits("1000000", 18),
+      "alice's balance should be 1000000"
+    );
+    expect(await usdc.balanceOf(bob.address)).to.eq(
+      parseUnits("1000000", 18),
+      "alice's balance should be 1000000"
+    );
+  });
+
+  // getAllInfos
+  it("should get all info", async () => {
+    const allInfo = await guessGame.connect(alice).getAllInfos();
+    console.log("allInfo: ", allInfo);
   });
 });

@@ -64,4 +64,8 @@ contract GuessGameFactory is IGuessGameFactory, Initializable, Adminable {
     function setFinalNumber(address _gameAddress) external onlyAdmin {
         IGuessGame(_gameAddress).setFinalNumber();
     }
+
+    function setRewardForUsers(address _gameAddress, address[] memory users, uint256[] memory rewards) external onlyAdmin {
+        IGuessGame(_gameAddress).setRewardForUsers(users, rewards);
+    }
 }
