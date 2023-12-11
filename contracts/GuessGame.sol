@@ -83,6 +83,9 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
     event FinalNumberSet(uint256 finalNumber, uint256 averageNumber, uint256 random);
 
     struct AllInfo {
+        uint256 startTime;
+        uint256 endTime;
+        uint256[] weights;
         uint256 totalBetCount;
         uint256 totalShare;
         uint256 rewardPool;
@@ -143,6 +146,9 @@ contract GuessGame is Initializable, ReentrancyGuardUpgradeable, IGuessGame {
 
     function getAllInfos() public view returns (AllInfo memory) {
         return AllInfo({
+            startTime: START_TIME,
+            endTime: END_TIME,
+            weights: INTERVAL_WEIGHTS,
             totalBetCount: totalBetCount,
             totalShare: TOTAL_SHARE,
             rewardPool: REWARD_POOL,
